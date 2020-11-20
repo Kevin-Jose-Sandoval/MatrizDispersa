@@ -1,0 +1,176 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package MatrizDispersa;
+
+import java.io.PrintWriter;
+
+/**
+ *
+ * @author Walter
+ */
+public class GraficadorMD {
+    
+    private String grafo;
+    private String dirPng;
+    
+    public void graficarMD(MatrizDispersa matriz){
+        NodoMatriz columna=matriz.root.siguiente;
+        NodoMatriz fila=matriz.root.abajo;
+        if(matriz==null){
+            return;
+        }
+        try{
+            dirPng="/Users/Walter/Desktop/matriz.jpg";
+            String dirDot="/Users/Walter/Desktop/matriz.txt";
+            
+            PrintWriter writer=new PrintWriter(dirDot,"UTF-8");
+            
+            grafo="digraph G{";
+            grafo+="\nnode [shape=box]";
+          
+            grafo+="\nMt[ label = \"Matrix\", width = 1.5, style = filled, fillcolor = firebrick1, group = 1 ];";
+            
+            //Cabeceras de las columnas
+            int i=2;
+            while(columna!=null){
+                System.out.println("creando las cabeceras de columnas");
+                String nombreNodo="\""+columna.x+columna.y+"\"";
+                
+                grafo+="\n"+nombreNodo+"[label =\""+columna.toString()+"\" ,width = 1.5, style = filled,"
+                        + " fillcolor = yellow, group = "+i+"];";
+               
+                columna=columna.siguiente;
+                i++;
+            }
+            columna=matriz.root.siguiente;
+            //Relaciones entre las Columnas
+            while(columna!=null){
+                System.out.println("crear las relaciones entre columnas");
+                if(columna.siguiente!=null){
+                String nombreNodo="\""+columna.x+columna.y+"\"";
+                String nombreNodoSiguiente="\""+columna.siguiente.x+columna.y+"\"";
+                
+                grafo+="\n"+nombreNodo+ "->" + nombreNodoSiguiente+";";
+                grafo+="\n"+nombreNodoSiguiente+ "->" + nombreNodo+"[constraint=false];";                
+                }
+               columna=columna.siguiente;    
+            }
+            // las cabeceras de fila....
+            while(fila!=null){
+                System.out.println("creando las cabeceras de fila");
+                String nombreNodo="\""+fila.x+fila.y+"\"";
+                
+                grafo+="\n"+nombreNodo+"[label =\""+fila.toString()+"\" ,width = 1.5 style = filled,"
+                        + " fillcolor = green, group = 1];";
+                System.out.println(grafo);
+                fila=fila.abajo;
+            }
+            System.out.println(grafo);
+            fila=matriz.root.abajo;
+            //Relaciones entre las filas
+            while(fila!=null){
+                
+                if(fila.arriba!=matriz.root){
+                    String nombreNodo="\""+fila.x+fila.y+"\"";
+                    String nombreNodoAnterior="\""+fila.arriba.x+fila.arriba.y+"\"";
+                    //Debe llevar el atributo constraint solo en el nodo  que apunta hacia arriba....
+                    grafo+="\n"+nombreNodo+ "->" + nombreNodoAnterior+"[constraint=false];";
+                    grafo+="\n"+nombreNodoAnterior+ "->" + nombreNodo+";";  
+                }
+                
+        
+                fila=fila.abajo;
+            }
+            
+            
+            grafo+="\nMt->"+"\""+matriz.root.siguiente.x+matriz.root.siguiente.y+"\""+
+                    "\nMt->"+matriz.root.abajo.x+matriz.root.abajo.y+"\n{rank=same; Mt;";
+            
+            //instruccion para que aparezcan las columnas alineadas
+            columna=matriz.root.siguiente;
+            while(columna!=null){
+                String nombreNodo="\""+columna.x+columna.y+"\"";
+                grafo+=nombreNodo+";";
+                columna=columna.siguiente;
+            }
+            grafo+="}";
+            
+            //Relaciones entre los nodos del centro
+            int grupo=2;
+            columna=matriz.root.siguiente;
+            fila=columna.abajo;
+            String relaciones="";
+            
+            while(columna!=null){   
+                while(fila!=null){
+                        String nodo="\""+fila.x+fila.y+"\"";
+                        //String nodoSiguiente=""+fila.siguiente.x+fila.siguiente.y;
+                        
+                        String nodoArriba="\""+fila.arriba.x+fila.arriba.y+"\"";
+                        String nodoAnterior="\""+fila.anterior.x+fila.anterior.y+"\"";
+
+                        
+                        grafo+="\n"+nodo+"[label = "+"\""+fila.toString()+"\""+" width = 1.5,group="+grupo+"];";
+
+                        //relaciones+="\n"+nodo+"->"+nodoSiguiente;
+                        //relaciones+="\n"+nodoSiguiente+"->"+nodo;
+
+                        relaciones+="\n"+nodo+"->"+nodoArriba+";";
+                        relaciones+="\n"+nodoArriba+"->"+nodo+";";
+
+                        relaciones+="\n"+nodo+"->"+nodoAnterior+";";
+                        relaciones+="\n"+nodoAnterior+"->"+nodo+";";
+                  fila=fila.abajo;
+                }
+             
+                grupo++;
+                columna=columna.siguiente;
+                
+                if(columna!=null){
+                    fila=columna.abajo;
+                }
+  
+            }
+            grafo+=relaciones;
+            
+            fila=matriz.root.abajo;
+            columna=fila.siguiente;
+            String rank="";
+            while(fila!=null){
+                String aux="\n{ rank = same; ";
+                
+                String nodo="\""+fila.x+fila.y+"\"";
+                aux+=nodo+";";
+                while(columna!=null){
+                    String  nodoSiguiente="\""+columna.x+columna.y+"\"";
+                    aux+=nodoSiguiente+";";
+                    columna=columna.siguiente;
+                }
+                aux+="}\n";
+                rank+=aux;
+                
+                fila=fila.abajo;
+                if(fila!=null)
+                columna=fila.siguiente;
+                
+            }
+            System.out.println(rank);
+            grafo+=rank;
+            grafo+="\n}";
+            
+            writer.print(grafo);
+            writer.close();
+            String cmd = "/usr/local/bin/dot" + " -Tjpg " + " -o " + " " + dirPng + " " + dirDot;
+            //String cmd= "/usr/local/Cellar/graphviz/2.42.2/bin/dot" + " -Tpng " + " -o " + " " + dirPng + " " + dirDot;
+            Runtime rt=Runtime.getRuntime();
+            rt.exec(cmd);
+            
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        
+    }
+}
